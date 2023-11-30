@@ -90,6 +90,18 @@ def file_path():
             "beta": {
                 "bacteria": {},
                 "fungi": {}
+            },
+            "abundance": {
+                "bacteria": {},
+                "fungi": {}
+            },
+            "corr": {
+                "bac_fun": {},
+                "micro_amino": {},
+            },
+            "core": {},
+            "ml": {
+                "process": {}
             }
         }
     }

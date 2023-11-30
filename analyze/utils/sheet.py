@@ -1,8 +1,5 @@
 import pandas as pd
 
-from analyse.statistics.amplicon import AmpliconStatistics
-from analyse.statistics.characteristics import NumCharacteristics
-
 
 class SheetOperator:
     @classmethod
@@ -51,16 +48,3 @@ class SheetOperator:
         :return: 合并的表格
         """
         return pd.merge(left=sheet1, right=sheet2, on="name")
-
-    @classmethod
-    def get_amplicon(cls, path, top=20, mean=True, processes=None, phase=None):
-        amplicon = AmpliconStatistics(path, "taxonomy")
-        amplicon = amplicon.get_top(top_k=top)
-        if mean:
-            nct = NumCharacteristics(amplicon)
-            amplicon = nct.get_mean(save_type="int")
-        if processes:
-            amplicon = amplicon.loc[amplicon.index.str.contains(processes), :]
-        if phase:
-            amplicon = amplicon.loc[amplicon.index.str.contains(phase), :]
-        return amplicon

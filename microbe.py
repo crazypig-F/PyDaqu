@@ -11,14 +11,14 @@ def split_qu_env():
 
     Q1 = df1.loc[:, df1.columns.str.contains("AZ|BZ|CZ|DZ|AY|BY|CY|DY")].copy()
     Q2 = df2.loc[:, df2.columns.str.contains("AZ|BZ|CZ|DZ|AY|BY|CY|DY")].copy()
-    Q1_ASV = Q1.apply(lambda x: x != 0).sum(axis=1).apply(lambda x: x > len(Q1.columns) // 5)
-    Q2_ASV = Q2.apply(lambda x: x != 0).sum(axis=1).apply(lambda x: x > len(Q2.columns) // 5)
+    Q1_ASV = Q1.apply(lambda x: x != 0).sum(axis=1).apply(lambda x: x > len(Q1.columns) // 12)
+    Q2_ASV = Q2.apply(lambda x: x != 0).sum(axis=1).apply(lambda x: x > len(Q2.columns) // 12)
     Q1 = Q1.loc[Q1_ASV, :]
     Q2 = Q2.loc[Q2_ASV, :]
     E1 = df1.loc[:, df1.columns.str.contains("MZ|WZ|RZ|EZ|MY|WY|RY|EY")].copy()
     E2 = df2.loc[:, df2.columns.str.contains("MZ|WZ|RZ|EZ|MY|WY|RY|EY")].copy()
-    E1_ASV = E1.apply(lambda x: x != 0).sum(axis=1).apply(lambda x: x > len(E1.columns) // 5)
-    E2_ASV = E2.apply(lambda x: x != 0).sum(axis=1).apply(lambda x: x > len(E2.columns) // 5)
+    E1_ASV = E1.apply(lambda x: x != 0).sum(axis=1).apply(lambda x: x > len(E1.columns) // 12)
+    E2_ASV = E2.apply(lambda x: x != 0).sum(axis=1).apply(lambda x: x > len(E2.columns) // 12)
     E1 = E1.loc[E1_ASV, :]
     E2 = E2.loc[E2_ASV, :]
 
@@ -77,7 +77,7 @@ def tm(df, n1, n2, n3):
 
 
 def main():
-    # split_qu_env()
+    split_qu_env()
     amplicon_operate()
 
 
