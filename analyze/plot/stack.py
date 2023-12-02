@@ -18,16 +18,16 @@ class StackData:
         :param rel: 是否为相对丰度
         :return: 符合堆叠图数据格式的数据表
         """
-        samples = []
-        strains = []
+        index_list = []
+        column_list = []
         values = []
         for idx in self.sheet.index:
             for col in self.sheet.columns:
-                samples.append(idx)
-                strains.append(col)
+                index_list.append(idx)
+                column_list.append(col)
                 if rel:
                     values.append(self.sheet.loc[idx, col] / sum(self.sheet.loc[idx, :]) * 100)
                 else:
                     values.append(self.sheet.loc[idx, col])
-        sheet = pd.DataFrame({"Samples": samples, "Strains": strains, "Values": values, })
+        sheet = pd.DataFrame({"Index": index_list, "Column": column_list, "Values": values, })
         return sheet

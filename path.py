@@ -93,7 +93,8 @@ def file_path():
             },
             "abundance": {
                 "bacteria": {},
-                "fungi": {}
+                "fungi": {},
+                "amino": {}
             },
             "corr": {
                 "bac_fun": {},
@@ -102,7 +103,8 @@ def file_path():
             "core": {},
             "ml": {
                 "process": {}
-            }
+            },
+            "溯源分析": {}
         }
     }
     return folder

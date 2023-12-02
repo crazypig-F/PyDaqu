@@ -30,9 +30,10 @@ g <- ggplot(data = data, aes(x = V1, y = V2, color = Group)) +
   theme_bw() +
   # guides(fill = guide_legend(title = "Genus", ncol = 1, byrow = TRUE)) +
   guides(color = 'none') +
-  theme(axis.title = element_text(family = "sans", size = 12, color = "black"),
-        axis.text = element_text(family = "sans", size = 10, color = "black"),
-        legend.title = element_text(family = "sans", size = 12, color = "black"),
-        legend.text = element_text(family = "sans", color = "black", size = 10)
+  theme(
+    axis.title = element_text(family = "sans", size = 12, color = "black"),
+    axis.text = element_text(family = "sans", size = 10, color = "black"),
+    legend.title = element_text(family = "sans", size = 12, color = "black"),
+    legend.text = element_text(family = "sans", color = "black", size = 10)
   )
 ggsave(filename = "./pdf/beta/fungi/CC.pdf", g, width = 9, height = 8, dpi = 600, units = "cm", device = 'pdf')

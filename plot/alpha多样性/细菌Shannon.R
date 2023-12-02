@@ -18,7 +18,7 @@ g <- ggboxplot(alpha, x = "Phase", y = "value", color = "Group", outlier.shape =
   labs(x = "", y = "", fill = "") +
   guides(fill = 'none') +
   labs(x = "", y = item) +
-  scale_color_manual(values = c("#005C66", "#FF530D", "#009E73", "#CC79A7")) +
+  scale_color_manual(values = c("#005C66", "#FF530D")) +
   guides(color = "none", shape = "none", linetype = "none") +
   scale_y_continuous(expand = c(0, 0), limits = c(0, 9)) +
   theme_bw() +
