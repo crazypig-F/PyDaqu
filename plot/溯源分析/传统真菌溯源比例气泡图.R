@@ -2,6 +2,7 @@ library(ggplot2)
 library(reshape2)
 library(forcats)
 source("./plot/font.R")
+COLOR <- c('#87CEEB', '#8B4513', '#FFA500', '#006400', '#A9A9A9')
 
 data <- read.table("./data/temp/source/fungi_tradictional_source_contributions_matrix.txt")
 data['Sample'] <- row.names(data)
@@ -14,7 +15,8 @@ g <- ggplot(data_melt, aes(x = Sinks, y = Sources, size = Value, color = Sources
   geom_point() +
   labs(x = '', y = '') +
   scale_y_discrete(labels = c("空气", "母曲", "稻草", "小麦", "未知")) +
-  guides(color = 'none', size='none') +
+  scale_color_manual(values = COLOR) +
+  guides(color = 'none', size = 'none') +
   theme_bw() +
   theme(
     axis.text.x = element_text(family = "sans", color = "black", size = 10, angle = 270, vjust = .5),
