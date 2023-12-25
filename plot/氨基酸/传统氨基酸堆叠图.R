@@ -7,7 +7,7 @@ amino <- read.csv("./data/temp/abundance/amino/traditional.csv", header = TRUE, 
 amino$Index <- fct_inorder(amino$Index)
 amino$Column <- fct_inorder(amino$Column)
 COLOR <- c(
-   "#FFD700", "#4E79A7", "#5DA05E", "#FF6262"
+   "#1f78b4", "#33a02c", "#e31a1c", "#ff7f00"
 )
 
 g <- ggplot(amino, aes(x = Index, y = Values, fill = Column)) +
@@ -20,9 +20,11 @@ g <- ggplot(amino, aes(x = Index, y = Values, fill = Column)) +
     axis.title.y = element_text(family = "songti", size = 12, color = "black"),
     axis.text.x = element_text(family = "sans", color = "black", size = 10, angle = 270, vjust = .5, hjust = -.1),
     axis.text.y = element_text(family = "sans", size = 10, color = "black"),
+    panel.grid.major = element_line(color = "transparent"),
+    panel.grid.minor = element_line(color = "transparent"),
   ) +
   # guides(fill = guide_legend(title = "", ncol = 1, byrow = TRUE)) +
   guides(fill = 'none') +
-  labs(x = "", y = "氨基酸含量 (%)")
+  labs(x = "", y = "氨基酸含量(mg/g)")
 
 ggsave(filename = "./pdf/amino/stack/tradictional.pdf", g, width = 12, height = 8, dpi = 600, units = "cm", device = 'pdf')

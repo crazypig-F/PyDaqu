@@ -22,11 +22,11 @@ g <- ggplot(data, aes(x = Index, y = Values, fill = Column)) +
   scale_x_discrete(expand = c(0, 0)) +
   theme_bw() +
   theme(
-    axis.title.y = element_text(family = "songti", size = 12, color = "black"),
+    axis.title.y = element_text(family = "songti", size = 18, color = "black"),
     axis.text.x = element_text(family = "sans", color = "black", size = 10, angle = 270, vjust = .5),
-    axis.text.y = element_text(family = "sans", size = 10, color = "black"),
+    axis.text.y = element_text(family = "sans", size = 16, color = "black"),
   ) +
   # guides(fill = guide_legend(title = "", ncol = 1, byrow = TRUE)) +
   guides(fill = 'none') +
-  labs(x = "", y = "相对丰度 (%)")
-ggsave(filename = "./pdf/abundance/fungi/tradictional/EF.pdf", g, width = 14, height = 8, dpi = 600, units = "cm", device = 'pdf')
+  labs(x = "", y = "相对丰度(%)")
+ggsave(filename = "./pdf/abundance/fungi/tradictional/EF.pdf", g, width = 15, height = 9, dpi = 600, units = "cm", device = 'pdf')

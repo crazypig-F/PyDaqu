@@ -12,7 +12,7 @@ mean$Phase <- fct_inorder(mapping$Phase)
 mean$Group <- fct_inorder(mapping$Group)
 std$Phase <- fct_inorder(mapping$Phase)
 std$Group <- fct_inorder(mapping$Group)
-item <- "糖化力 (U/g)"
+item <- "糖化力(U/g)"
 
 
 mean <- mean[, c(item, "Phase", "Group")]
@@ -31,14 +31,13 @@ g <- ggplot(mean, aes(x = Phase, y = value, group = Group, linetype = Group, sha
   geom_errorbar(aes(ymin = value - std, ymax = value + std), linetype = 1, width = 0.15, size = .5) +
   labs(x = "", y = item) +
   guides(color = "none", shape = "none", linetype = "none") +
-  scale_y_continuous(expand = c(0, 0), limits = c(-100, 1200)) +
+  scale_y_continuous(expand = c(0, 0), limits = c(-100, 1500)) +
   scale_color_manual(values = COLOR)+
   theme_classic() +
   theme(
-    axis.title = element_text(family = "songti", size = 12, color = "black"),
-    axis.text.x = element_text(family = "songti", color = "black", size = 10),
-    axis.text.y = element_text(family = "sans", size = 10, color = "black"),
-    legend.text = element_text(family = "songti", size = 10, color = "black"),
+    axis.title = element_text(family = "songti", size = 16, color = "black"),
+    axis.text.x = element_text(family = "songti", color = "black", size = 18),
+    axis.text.y = element_text(family = "sans", size = 14, color = "black"),
     panel.grid.major = element_line(color = "transparent"),
     panel.grid.minor = element_line(color = "transparent"),
     axis.line = element_line(color = "black"),
