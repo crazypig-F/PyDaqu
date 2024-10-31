@@ -40,28 +40,22 @@ Using Python, we implemented three machine learning algorithms—XGBoost, Random
    ```
    bash
    
-   
-   复制代码
    git clone https://github.com/yourusername/htd-amino-acid-pattern-prediction.git
    ```
-
+   
 2. Install required R packages:
 
    ```
    R
    
-   
-   复制代码
    install.packages(c("vegan", ...))  # You need install all necessary packages
    ```
-
+   
 3. Install required Python packages:
 
    ```
    bash
    
-   
-   复制代码
    pip install pandas    # You need install all necessary packages
    ```
 
