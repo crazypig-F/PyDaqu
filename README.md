@@ -1,49 +1,75 @@
-# PyDaqu
-基于python分析大曲发酵过程中的理化、微生物和氨基酸数据。
+# Amino Acid Pattern Prediction in High-Temperature Daqu Fermentation
 
-原始数据包括：理化测定数据（淀粉含量、水分、糖化力、还原糖含量、总酸、总酯），微生物测序数据（细菌和真菌丰度表），20种氨基酸测定数据。
+This repository contains the R and Python scripts for analyzing amino acid patterns in high-temperature Daqu (HTD) fermentation. It includes microbial community analysis, correlation analysis, and machine learning-based modeling to predict amino acid patterns from microbial features.
 
-## 样品采集
+## Project Overview
 
-在大曲发酵入仓、一翻、二翻、出仓四个时间点采集样品。分别在传统车间和机械车间采样，每个车间包含14个曲房，曲房编号为01-14，每个曲房采集一个样品，每个样品平均分为3个平行。另外从空气，母曲，稻草，小麦中采集环境微生物样品，每个样品平均分为3个平行。
+Amino acids are vital nitrogen sources in HTD and are closely linked to HTD quality. This study examines amino acid patterns by measuring fermentation parameters, microbial community dynamics, and amino acid concentrations throughout the HTD fermentation process. Through correlation analysis and feature selection using machine learning, we identified critical amplicon sequence variants (ASVs) and built predictive models for amino acid patterns.
 
-样品命名规则如下
+## Contents
 
-发酵时间：入仓（A），一翻（B），二翻（C），出仓（D）
+- `data/raw`: Example datasets (fermentation parameters, microbial data, amino acid concentrations)
+- `data/result`: The intermediate data files
+- `src/R/`: R scripts for microbial community analysis, RDA, and visualizations
+- `src/Python`: Python scripts for co-linearity network, machine learning model construction
 
-环境：空气（E），母曲（M），稻草（R），小麦（W）
+## Methods
 
-车间：传统车间（Y），机械车间（Z）
+### Microbial Community Analysis
 
-曲房：01-14
+The R scripts in this repository analyze the microbial community's role in amino acid metabolism using correlation analysis, redundancy analysis (RDA), and visualization. Key packages include `vegan` for RDA.
 
-平行：A-C
+### Machine Learning Model
 
-例如 AY01A、AY01B、AY01C 表示入仓阶段传统车间01曲房的3个样品，EYA、EYB、EYC 表示传统车间环境中空气的3个样品
+Using Python, we implemented three machine learning algorithms—XGBoost, Random Forest (RF), and Partial Least Squares Regression (PLSR)—for feature selection and predictive modeling. Feature importance is assessed using SHAP values, feature importance metrics, and VIP scores respectively.
 
-## 理化和氨基酸数据
+- Feature Selection:
 
-1. 传统和机械理化折线图
-2. 氨基酸含量柱状图
+   Three methods were employed to select key ASVs:
 
-## 微生物多样性
+  - XGBoost with SHAP
+  - RF with Feature Importance
+  - PLSR with VIP
 
-1. α多样性（Chao1和Shannon）箱线图
-2. β多样性（PCoA）
+- **Model Construction:** The selected ASVs were used to construct high-accuracy models for amino acid pattern prediction.
 
-## 微生物组成与演替
+## Installation and Setup
 
-1. 细菌和真菌相对丰度堆叠图
+1. Clone the repository:
 
-### 大曲关键微生物解析
+   ```
+   bash
+   
+   
+   复制代码
+   git clone https://github.com/yourusername/htd-amino-acid-pattern-prediction.git
+   ```
 
-1. PLS-DA分析以及VIP值可视化
-2. 溯源分析及可视化
-3. 功能预测及可视化
+2. Install required R packages:
 
-## 发酵参数、微生物群落和氨基酸含量的相关性分析
+   ```
+   R
+   
+   
+   复制代码
+   install.packages(c("vegan", ...))  # You need install all necessary packages
+   ```
 
-1. RDA分析及可视化
-2. 相关性网络分析
-3. 机器学习模型
+3. Install required Python packages:
 
+   ```
+   bash
+   
+   
+   复制代码
+   pip install pandas    # You need install all necessary packages
+   ```
+
+## Usage
+
+- **Microbial Community Analysis:** Run R scripts in `src/R` to perform microbial community analysis, RDA.
+- **Machine Learning Model Construction:** Execute Python scripts in `src/python` to conduct feature selection and build predictive models.
+
+## Results
+
+Key findings indicate that five ASVs—two from *Saccharopolyspora*, two from *Bacillus*, and one from *Lactobacillus*—are critical predictors of amino acid patterns in HTD fermentation.

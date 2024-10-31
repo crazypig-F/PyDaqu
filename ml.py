@@ -1,156 +1,181 @@
-import math
-
 import numpy as np
 import pandas as pd
-import scipy
-from scipy.stats import linregress
-from sklearn.metrics import r2_score
+import sklearn
+import xgboost
+from sklearn.cross_decomposition import PLSRegression
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import r2_score, mean_squared_error
+from xgboost import XGBRegressor
 
-from analyze.ml.classify import ProcessClassifyModel, PhaseClassifyModel
-from analyze.ml.regression import RegressionModel
-from core import dominant_microbe
+from correlation import mapping_asv_select
+from src.python.ml.regression import RegressionModel
+from src.python.utils.importance import get_vips, get_shap
 
-
-def process_predict():
-    process_map = {"Y": 0, "Z": 1}
-    microbe = pd.read_csv("./data/temp/microbe/parallel/merge/top/complete.csv", index_col=0)
-    data = microbe.loc[microbe.index.str.startswith("D"), :]
-    y = np.array([process_map[i[1]] for i in data.index])
-    clf = ProcessClassifyModel(data, y, seed=42)
-    s = clf.train()
-    print(f"交叉验证平均结果", s)
-
-
-def phase_predict(group):
-    if group == "traditional":
-        phase_map = {"AY": 0, "BY": 1, "CY": 2, "DY": 3}
-    else:
-        phase_map = {"AZ": 0, "BZ": 1, "CZ": 2, "DZ": 3}
-    microbe = pd.read_csv(f"./data/temp/microbe/chamber/merge/top/{group}.csv", index_col=0)
-    # core = pd.read_csv(f"./data/temp/core/{group}.csv", index_col=0)
-    # dominant = dominant_microbe(group, top)
-    # print(set(dominant))
-    # core = core.loc[core['degree'] >= degree, :].index.to_list()
-    # print(set(core))
-    # key = sorted(list(set(dominant) & set(core)))
-    # print(key)
-    top = ["Pantoea", "Bacillus", "Virgibacillus", "Weissella", "Saccharopolyspora", "Enterobacter", "Thermomyces",
-           "Thermoascus", "Pichia"]
-    microbe = microbe.loc[:, top]
-    physic = pd.read_csv(f"./data/temp/phy/chamber/mean/{group}.csv", index_col=0)
-    physic.columns = ["starch", "moisture", "SP", "RS", "TA", "TE"]
-    physic = physic.loc[:, ["moisture"]]
-    data = pd.concat([microbe, physic], axis=1)
-    y = pd.Series(np.array([phase_map[i[:2]] for i in data.index]), index=data.index)
-    accuracy, precision, recall, f1 = 0, 0, 0, 0
-    exp_num = 50
-    print(data.columns)
-    for i in range(exp_num):
-        clf = PhaseClassifyModel(data, y, test_size=0.3, seed=i)
-        res = clf.train()
-        accuracy += res[0]
-        precision += res[1]
-        recall += res[2]
-        f1 += res[3]
-    print(accuracy / exp_num, precision / exp_num, recall / exp_num, f1 / exp_num)
+model = {
+    "PLSR": PLSRegression(n_components=2),
+    "XGBoost": XGBRegressor(n_estimators=100, random_state=42),
+    "RF": RandomForestRegressor(n_estimators=100, random_state=42)
+}
 
 
-def microbe_amino(group, degree_micro, degree_amino):
-    microbe = pd.read_csv(f"./data/temp/microbe/chamber/merge/top/{group}.csv", index_col=0)
-    # core_microbe = pd.read_csv(f"./data/temp/core/micro_amino/amino_micro_{group}.csv", index_col=0)
-    # microbe = microbe.loc[:, core_microbe.loc[core_microbe['degree'] >= degree_micro, :].index]
-    # print(core_microbe.loc[core_microbe['degree'] >= degree_micro, :].index)
+def AAs_select_feature():
+    AAs = pd.read_csv("./data/result/AAs/AAs mean.csv", index_col=0)
+    asv = pd.read_csv("./data/result/micro/mean/asv 30% mean.csv", index_col=0)
+    asv = asv.loc[:, mapping_asv_select()]
+    for m in model:
+        print(m)
+        model_score = pd.DataFrame()
+        for AA in AAs.columns:
+            reg = RegressionModel(asv, AAs[AA], model[m], test_size=0.3, seed=42)
+            y = reg.model.predict(reg.X_test)
+            r2 = r2_score(y, reg.y_test)
+            mse = mean_squared_error(y, reg.y_test)
+            print(AA, r2, mse)
+            asv_sort, importance_sort = feature_select_top3(asv, reg)
+            score = pd.DataFrame({"importance": importance_sort}, index=asv_sort)
+            model_score = pd.concat([model_score, score], axis=1)
+        model_score.columns = AAs.columns
+        model_score.to_csv(f"./data/result/ml/{m} feature importance.csv")
 
-    amino = pd.read_csv(f"./data/temp/amino/chamber/mean/{group}.csv", index_col=0)
-    # core_amino = pd.read_csv(f"./data/temp/core/micro_amino/amino_{group}.csv", index_col=0)
-    # amino = amino.loc[:, core_amino.loc[core_amino['degree'] > degree_amino, :].index]
-    # print(core_amino.loc[core_amino['degree'] >= degree_amino, :].index)
-    # corr_microbe = pd.read_csv(f"./data/temp/corr/micro_amino/{group}_edge.csv", index_col=0)
 
-    physic = pd.read_csv(f"./data/temp/phy/chamber/mean/{group}.csv", index_col=0)
-    physic.columns = ["starch", "moisture", "SP", "RS", "TA", "TE"]
+def feature_select_top3(asv, reg):
+    # 随机森林挑选特征重要性排名前3的微生物
+    asv_sort = []
+    importance_sort = []
+    target_asv = []
+    if isinstance(reg.model, sklearn.ensemble.RandomForestRegressor):
+        importances = reg.model.feature_importances_
+        indices = np.argsort(importances)[::-1]
+        for i in range(asv.shape[1]):
+            asv_sort.append(asv.columns[indices[i]])
+            importance_sort.append(importances[indices[i]])
 
-    # [["Bacillus"], ["Halomonas"], ["Lactobacillus"], ["Pantoea"], ["Pseudonocardiaceae"],
-    #  ["Saccharopolyspora"], ["Virgibacillus"], ["Weissella"], ["Bacillus", "Halomonas"],
-    #  ["Bacillus", "Lactobacillus"], ["Bacillus", "Pantoea"], ["Bacillus", "Pseudonocardiaceae"],
-    #  ["Bacillus", "Saccharopolyspora"], ["Bacillus", "Virgibacillus"], ["Bacillus", "Weissella"]]        real = {}
+    # 偏最小二乘回归筛选vip排名前3的微生物
+    if isinstance(reg.model, sklearn.cross_decomposition.PLSRegression):
+        importances = get_vips(asv, reg.model)
+        indices = np.argsort(importances)[::-1]
+        for i in range(asv.shape[1]):
+            asv_sort.append(asv.columns[indices[i]])
+            importance_sort.append(importances[indices[i]])
 
-    microbe_select = microbe.loc[:, ["Bacillus"]]
-    physic_select = physic.loc[:, ["moisture"]]
-    data = pd.concat([microbe_select, physic_select], axis=1)
-    amino_select = amino.loc[:,
-                   ["Gln", "Lys", "His", "Pro", "Phe", "Val", "Glu", "Gly", "Ile", "Leu", "Thr", "Ser", "Tyr", "Ala"]
-                   ]
+    # xgboost筛选shap排名前3的微生物
+    if isinstance(reg.model, xgboost.XGBRegressor):
+        importance = get_shap(asv, reg.model)
+        for idx in importance.index:
+            asv_sort.append(idx)
+            importance_sort.append(importance.loc[idx])
 
-    real = {}
+    return asv_sort, importance_sort
+
+
+def predict_test():
+    AAs = pd.read_csv("./data/result/AAs/AAs mean.csv", index_col=0)
+    asv = pd.read_csv("./data/result/micro/mean/asv 30% mean.csv", index_col=0)
+    fp = pd.read_csv("./data/result/fermentation parameters/fermentation parameters mean.csv", index_col=0)
+    moisture = fp['Moisture (%)']
+    for m in model:
+        print(m)
+        score1, score2, score3 = [], [], []
+        score_mean1, score_mean2, score_mean3 = 0, 0, 0
+        for AA in AAs.columns:
+            asv_select = asv.loc[:,
+                         ['B_ASV_15625', 'B_ASV_95119', 'B_ASV_125122', 'B_ASV_143173', 'B_ASV_131779']
+                         ]
+            X = asv_select
+            reg = RegressionModel(X, AAs[AA], model[m], test_size=0.3, seed=42)
+            y = reg.model.predict(reg.X_test)
+            r2 = r2_score(reg.y_test, y)
+            score_mean1 += r2
+            score1.append(round(r2, 6))
+
+            X = pd.concat([moisture], axis=1)
+            if m == "PLSR":
+                model[m] = PLSRegression(n_components=1)
+            reg = RegressionModel(X, AAs[AA], model[m], test_size=0.3, seed=42)
+            y = reg.model.predict(reg.X_test)
+            r2 = r2_score(reg.y_test, y)
+            score_mean2 += r2
+            score2.append(round(r2, 6))
+            model['PLSR'] = PLSRegression(n_components=2)
+
+            X = pd.concat([asv_select, moisture], axis=1)
+            reg = RegressionModel(X, AAs[AA], model[m], test_size=0.3, seed=42)
+            y = reg.model.predict(reg.X_test)
+            r2 = r2_score(reg.y_test, y)
+            score_mean3 += r2
+            score3.append(round(r2, 6))
+        print(score_mean1 / 20, score_mean2 / 20, score_mean3 / 20)
+        print((score_mean3 - score_mean1) / score_mean1 * 100)
+        print((score_mean3 - score_mean2) / score_mean2 * 100)
+        pd.DataFrame({"ASV": score1, "Moisture": score2, "ASV with Moisture": score3}, index=AAs.columns).to_csv(
+            f"./data/result/ml/{m} predict score.csv")
+
+
+def best_model():
+    score_PLSR = pd.read_csv("./data/result/ml/PLSR predict score.csv", index_col=0)
+    score_XGBoost = pd.read_csv("./data/result/ml/XGBoost predict score.csv", index_col=0)
+    score_RF = pd.read_csv("./data/result/ml/RF predict score.csv", index_col=0)
+    model_dict = {}
+    score_dict = {}
+    for idx in score_PLSR.index:
+        s1, s2 = score_PLSR.loc[idx, 'ASV'], score_PLSR.loc[idx, 'ASV with Moisture']
+        s3, s4 = score_XGBoost.loc[idx, 'ASV'], score_XGBoost.loc[idx, 'ASV with Moisture']
+        s5, s6 = score_RF.loc[idx, 'ASV'], score_RF.loc[idx, 'ASV with Moisture']
+        score_list = [s1, s2, s3, s4, s5, s6]
+        max_score = max(score_list)
+        max_index = score_list.index(max_score)
+        if max_index == 0:
+            model_dict[idx] = "PLSR ASV"
+        elif max_index == 1:
+            model_dict[idx] = "PLSR ASV + M"
+        elif max_index == 2:
+            model_dict[idx] = "XGBoost ASV"
+        elif max_index == 3:
+            model_dict[idx] = "XGBoost ASV + M"
+        elif max_index == 4:
+            model_dict[idx] = "RF ASV"
+        else:
+            model_dict[idx] = "RF ASV + M"
+        score_dict[idx] = max_score
+
+    return model_dict, score_dict
+
+
+def best_model_prediction_value():
+    model_dict, score_dict = best_model()
+    print(model_dict)
+    print(score_dict)
+    AAs = pd.read_csv("./data/result/AAs/AAs mean.csv", index_col=0)
+    asv = pd.read_csv("./data/result/micro/mean/asv 30% mean.csv", index_col=0)
+    fp = pd.read_csv("./data/result/fermentation parameters/fermentation parameters mean.csv", index_col=0)
+    moisture = fp['Moisture (%)']
     predict = {}
-    score = []
-    for col in amino_select.columns:
-        print(col, data.columns.to_list())
-        exp_num = 50
-        r2 = 0
-        for i in range(exp_num):
-            reg = RegressionModel(data, amino_select[col], test_size=0.3, seed=i)
-            res = reg.train()
-            r2 += res[2]
-            r = scipy.stats.pearsonr(res[0].to_list(), res[1])[0]
-            p = scipy.stats.pearsonr(res[0].to_list(), res[1])[1]
-            print(r, p)
-        mean_score = r2 / exp_num
-        print(mean_score)
-        score.append(mean_score)
-        min_sub_score = 10000
-        for i in range(exp_num):
-            reg = RegressionModel(data, amino_select[col], test_size=0.3, seed=i)
-            res = reg.train()
-            if abs(res[2] - mean_score) < min_sub_score:
-                real[col] = res[0].to_list()
-                predict[col] = res[1]
-                min_sub_score = abs(res[2] - mean_score)
-    pd.DataFrame(real).to_csv(f"./data/temp/ml/real_amino_{group}.csv")
-    pd.DataFrame(predict).to_csv(f"./data/temp/ml/predict_amino_{group}.csv")
-    pd.DataFrame({"score": score}, index=amino_select.columns).to_csv(f"./data/temp/ml/predict_amino_score_{group}.csv")
-
-
-# Bacillus_Virgibacillus
-# 0.281332095
-# 0.481495885
-# 0.553991389
-
-# Bacillus
-# 0.394566925
-# 0.627769925
-# 0.70571265
-
-
-# Bacillus_Saccharopolyspora
-# 0.533103469
-# 0.474726715
-# 0.315911683
-# 0.557064062
-# 0.6350019
-# 0.531931199
-
-# Bacillus
-# 0.601081629
-# 0.68555016
-# 0.650241265
-# 0.745319985
-# 0.829849802
-# 0.758358006
-
-
-def main():
-    # process_predict()
-    # print("traditional")
-    # phase_predict("traditional")
-    # print("mechanical")
-    # phase_predict("mechanical")
-    print("traditional")
-    microbe_amino("traditional", 1, 1)
-    print("mechanical")
-    microbe_amino("mechanical", 5, 3)
+    measure = {}
+    for key, val in model_dict.items():
+        asv_select = asv.loc[:,
+                     ['B_ASV_15625', 'B_ASV_95119', 'B_ASV_125122', 'B_ASV_143173', 'B_ASV_131779']
+                     ]
+        X = asv_select
+        if "+ M" in val:
+            X = pd.concat([asv_select, moisture], axis=1)
+        if "RF" in val:
+            reg = RegressionModel(X, AAs[key], model["RF"], test_size=0.3, seed=42)
+        elif "PLSR" in val:
+            reg = RegressionModel(X, AAs[key], model["PLSR"], test_size=0.3, seed=42)
+        else:
+            reg = RegressionModel(X, AAs[key], model["XGBoost"], test_size=0.3, seed=42)
+        y = reg.model.predict(reg.X_test)
+        r2 = r2_score(reg.y_test, y)
+        predict[key] = y
+        measure[key] = reg.y_test
+        print(key, r2, score_dict[key])
+    pd.DataFrame(predict).to_csv("./data/result/ml/predict value.csv")
+    pd.DataFrame(measure).to_csv("./data/result/ml/measure value.csv")
+    pd.DataFrame({"score": score_dict.values(), "model": model_dict.values()}, index=list(score_dict.keys())).to_csv(
+        "./data/result/ml/score model.csv")
 
 
 if __name__ == '__main__':
-    main()
+    # AAs_select_feature()
+    # predict_test()
+    best_model_prediction_value()

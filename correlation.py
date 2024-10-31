@@ -1,63 +1,99 @@
 import pandas as pd
 
-from analyze.plot.corr import CorrNetworkGraph
-from analyze.utils.sheet import SheetOperator
-from utils import save_csv
+from src.python.corr.graph import CorrNetworkGraph
+from src.python.utils.sheet import SheetOperator
 
+
+# 4DBBD5 node1
+# 3C5488 node2
+# F4A8AC 红色边的颜色
+# 00A087 蓝色边的颜色
 
 def get_corr_network_graph(df1, df2):
     cng = CorrNetworkGraph(df1, df2, method="spearman")
-    # cng = CorrNetworkGraph(df1, df2)
     return cng
 
 
-def core_species(mat_r):
-    core = (~mat_r.isna()).sum(axis=0).sort_values(ascending=False)
-    print(core)
-    return core
+def microbe_amino():
+    asv = pd.read_csv("./data/result/micro/mean/asv 30% mean.csv", index_col=0)
+    AAs = pd.read_csv("./data/result/AAs/AAs mean.csv", index_col=0)
+
+    asv = SheetOperator.clean_zero(asv)
+    AAs = SheetOperator.clean_zero(AAs)
+    cng = get_corr_network_graph(asv, AAs)
+    cng.r.to_csv("./data/result/corr/micro_amino_r.csv")
+    cng.p.to_csv("./data/result/corr/micro_amino_p.csv")
+    cng.edge().to_csv("./data/result/corr/micro_amino_edge.csv", index=False)
+    cng.node().to_csv("./data/result/corr/micro_amino_node.csv", index=False)
 
 
-def bacteria_fungi():
-    merge_t = pd.read_csv("./data/temp/microbe/stage/merge/top/traditional.csv", index_col=0)
-    merge_t = SheetOperator.clean_zero(merge_t)
-    d1_t = pd.read_csv("./data/temp/microbe/stage/bacteria/top/traditional.csv", index_col=0)
-    d2_t = pd.read_csv("./data/temp/microbe/stage/fungi/top/traditional.csv", index_col=0)
-    save_bacteria_fungi(merge_t, d1_t, d2_t, "traditional")
+def asv_mapping():
+    asv_b = pd.read_csv("./data/raw/Daqu bacteria asv.csv", index_col=0)
+    asv_f = pd.read_csv("./data/raw/Daqu fungi asv.csv", index_col=0)
+    tax_b = asv_b.loc[:, ['taxonomy']]
+    tax_f = asv_f.loc[:, ['taxonomy']]
+    tax_b['taxonomy'] = [i.split(";")[-2][4:] for i in tax_b['taxonomy']]
+    tax_f['taxonomy'] = [i.split(";")[-2][4:] for i in tax_f['taxonomy']]
+    tax = pd.concat([tax_b, tax_f], axis=0)
 
-    merge_m = pd.read_csv("./data/temp/microbe/stage/merge/top/mechanical.csv", index_col=0)
-    merge_m = SheetOperator.clean_zero(merge_m)
-    d1_m = pd.read_csv("./data/temp/microbe/stage/bacteria/top/mechanical.csv", index_col=0)
-    d2_m = pd.read_csv("./data/temp/microbe/stage/fungi/top/mechanical.csv", index_col=0)
-    save_bacteria_fungi(merge_m, d1_m, d2_m, "mechanical")
-
-
-def save_bacteria_fungi(df, d1, d2, n1):
-    cng = get_corr_network_graph(df, df)
-    save_csv(cng.r, f"./data/temp/corr/bac_fun/{n1}_r.csv")
-    save_csv(cng.p, f"./data/temp/corr/bac_fun/{n1}_p.csv")
-    core_species(cng.r)
-    save_csv(cng.edge(), f"./data/temp/corr/bac_fun/{n1}_edge.csv", index=False)
-    save_csv(cng.self_node(d1, d2), f"./data/temp/corr/bac_fun/{n1}_node.csv", index=False)
+    edge = pd.read_csv("./data/result/corr/micro_amino_edge.csv", index_col=0)
+    mapping_taxonomy = [tax.loc[i[2:], 'taxonomy'] for i in edge['Source']]
+    edge['taxonomy'] = mapping_taxonomy
+    mapping = edge.loc[:, ['Source', 'Target', 'Relevance', 'taxonomy']]
+    mapping.to_csv("./data/result/corr/asv_mapping.csv", index=False)
 
 
-def microbe_amino(group):
-    microbe = pd.read_csv(f"./data/temp/microbe/chamber/merge/top/{group}.csv", index_col=0)
-    amino = pd.read_csv(f"./data/temp/amino/chamber/mean/{group}.csv", index_col=0)
-    amino = SheetOperator.clean_zero(amino)
-    microbe = SheetOperator.clean_zero(microbe)
-    cng = get_corr_network_graph(amino, microbe)
+def mapping_tax_count():
+    mapping = pd.read_csv("./data/result/corr/asv_mapping.csv")
+    tax_count = {}
+    for idx in mapping.index:
+        tax = mapping.loc[idx, 'taxonomy']
+        relevance = mapping.loc[idx, 'Relevance']
+        if tax not in tax_count.keys():
+            tax_count[tax] = [0, 0]
+        if relevance >= 0:
+            tax_count[tax][0] += 1
+        else:
+            tax_count[tax][1] += 1
+    p, n = [], []
+    for key, value in tax_count.items():
+        p.append(value[0])
+        n.append(value[1])
+    tax_count_df = pd.DataFrame({'taxonomy': tax_count.keys(), 'p': p, 'n': n})
+    tax_count_df.to_csv("./data/result/corr/tax_count.csv")
 
-    save_csv(cng.r, f"./data/temp/corr/micro_amino/{group}_r.csv")
-    save_csv(cng.p, f"./data/temp/corr/micro_amino/{group}_p.csv")
-    save_csv(cng.edge(), f"./data/temp/corr/micro_amino/{group}_edge.csv", index=False)
-    save_csv(cng.node(), f"./data/temp/corr/micro_amino/{group}_node.csv", index=False)
+
+def mapping_asv_select():
+    mapping = pd.read_csv("./data/result/corr/asv_mapping.csv")
+    target_genus = ['Bacillus', 'Saccharopolyspora', 'Virgibacillus', 'Lactobacillus']
+    target_asv = mapping.loc[mapping['taxonomy'].isin(target_genus), 'Source']
+    return list(set(target_asv))
 
 
-def main():
-    # bacteria_fungi()
-    microbe_amino("traditional")
-    microbe_amino("mechanical")
+def set_node_color():
+    node = pd.read_csv("./data/result/corr/micro_amino_node.csv", index_col=0)
+    mapping = pd.read_csv(f"./data/result/corr/asv_mapping.csv")
+    taxonomy = mapping.loc[:, ['Source', 'taxonomy']].drop_duplicates()
+    taxonomy.index = taxonomy['Source']
+    taxonomy = taxonomy['taxonomy']
+    print(taxonomy)
+
+    def set_color(row):
+        if row["Color"] == "node1":
+            if row['Label'] in taxonomy.index.tolist():
+                return taxonomy[row["Label"]]
+            else:
+                return "others"
+        else:
+            return "node2"
+
+    node["taxonomy"] = node.apply(lambda row: set_color(row), axis=1)
+    node["Label"] = node.apply(lambda x: x["Label"] if x["Color"] == "node2" else "", axis=1)
+    node.to_csv("./data/result/corr/micro_amino_node.csv")
 
 
 if __name__ == '__main__':
-    main()
+    microbe_amino()
+    asv_mapping()
+    mapping_tax_count()
+    set_node_color()
