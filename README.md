@@ -11,7 +11,7 @@ Amino acids are vital nitrogen sources in HTD and are closely linked to HTD qual
 - `data/raw`: Example datasets (fermentation parameters, microbial data, amino acid concentrations)
 - `data/result`: The intermediate data files
 - `src/R/`: R scripts for microbial community analysis, RDA, and visualizations
-- `src/Python`: Python scripts for co-linearity network, machine learning model construction
+- `src/Python`: Python scripts for correlation network, machine learning model construction
 
 ## Methods
 
